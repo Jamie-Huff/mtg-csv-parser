@@ -1,0 +1,13 @@
+{
+  "name": "mtg-north-cardscanner",
+  "version": "1.0.0",
+  "description": "MTG card scanner and CSV processor",
+  "main": "index.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
