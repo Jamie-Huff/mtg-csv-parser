@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manabox to Crystal Commerce CSV Parser</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manabox to Crystal Commerce CSV Parser</h1>
+
+        <div class="upload-area" id="uploadArea">
+            <p>Click to upload your CSV file or drag and drop it here</p>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose CSV File
+            </button>
+            <input type="file" id="fileInput" accept=".csv" />
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const statusDiv = document.getElementById('status');
+
+        fileInput.addEventListener('change', handleFile);
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        });
+
+        function handleFile() {
+            const file = fileInput.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function hideStatus() {
+            statusDiv.style.display = 'none';
+        }
+
+        function getCurrentDate() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',');
+            const rows = [];
+
+            for (let lineNum = 1; lineNum < lines.length; lineNum++) {
+                const values = [];
+                let currentValue = '';
+                let inQuotes = false;
+
+                for (let lineField = 0; lineField < lines[lineNum].length; lineField++) {
+                    const char = lines[lineNum][lineField];
+
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(currentValue.trim());
+                        currentValue = '';
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                values.push(currentValue.trim());
+
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header.trim()] = values[index];
+                    });
+                    rows.push(row);
+                }
+            }
+
+            return rows;
+        }
+
+        function convertToExportFormat(data) {
+            const convertedData = [];
+
+            for (let lineNumber = 0; lineNumber < data.length; lineNumber++) {
+                const row = data[lineNumber];
+                const importDocLineNumber = lineNumber + 2; // +2 because index starts at 0 and we skip header row
+
+                // this is pretty jank I should probably make it more modular later
+                if (!row.hasOwnProperty('Name') || row['Name'].trim() === '') {
+                    throw new Error(`Line ${importDocLineNumber}: Missing product name`);
+                }
+
+                if (!row.hasOwnProperty('Set name') || row['Set name'].trim() === '') {
+                    throw new Error(`Line ${importDocLineNumber}: Missing set name`);
+                }
+
+                if (!row.hasOwnProperty('Quantity') || row['Quantity'].trim() === '') {
+                    throw new Error(`Line ${importDocLineNumber}: Missing quantity`);
+                }
+
+                const quantity = parseInt(row['Quantity']);
+                if (isNaN(quantity) || quantity <= 0) {
+                    throw new Error(`Line ${importDocLineNumber}: Invalid quantity "${row['Quantity']}" (must be a positive number)`);
+                }
+
+                const output = {
+                    'Product Name': row['Name'].trim(),
+                    'Category': row['Set name'].trim(),
+                    'Add Qty': quantity
+                };
+
+                convertedData.push(output);
+            }
+
+            return convertedData;
+        }
+
+        function generateCSV(data) {
+            const headers = ['Product Name', 'Category', 'Add Qty'];
+            const csvLines = [headers.join(',')];
+
+            data.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                });
+                csvLines.push(values.join(','));
+            });
+
+            return csvLines.join('\n');
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        function processFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showStatus('Please select a CSV file', 'error');
+                return;
+            }
+
+            showStatus('Processing file...', 'processing');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csvText = e.target.result;
+                    const parsedData = parseCSV(csvText);
+
+                    if (parsedData.length === 0) {
+                        throw new Error('No data found in the CSV file');
+                    }
+
+                    const exportData = convertToExportFormat(parsedData);
+                    const outputCSV = generateCSV(exportData);
+
+                    const currentDate = getCurrentDate();
+                    const filename = `export-${currentDate}.csv`;
+
+                    downloadCSV(outputCSV, filename);
+
+                    showStatus(`✅ Successfully processed ${exportData.length} cards and downloaded ${filename}`, 'success');
+
+                } catch (error) {
+                    showStatus(`Error: ${error.message}`, 'error');
+                }
+            };
+
+            reader.onerror = function() {
+                showStatus('Error reading file', 'error');
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
