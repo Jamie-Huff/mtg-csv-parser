@@ -7,18 +7,72 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Manabox to Crystal Commerce CSV Parser</h1>
+    <!-- Header Bar -->
+    <div class="header-bar">
+        <h1>MTG North Card Scanner</h1>
+    </div>
 
-        <div class="upload-area" id="uploadArea">
-            <p>Click to upload your CSV file or drag and drop it here</p>
-            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                Choose CSV File
-            </button>
-            <input type="file" id="fileInput" accept=".csv" />
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <ul>
+            <li><button class="nav-link" onclick="openAboutModal()">About</button></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <div class="upload-area" id="uploadArea">
+                <p>Click to upload your CSV file or drag and drop it here</p>
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    Choose CSV File
+                </button>
+                <input type="file" id="fileInput" accept=".csv" />
+            </div>
+
+            <div id="status" class="status"></div>
         </div>
+    </div>
 
-        <div id="status" class="status"></div>
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAboutModal()">&times;</span>
+            <div class="modal-body">
+                <h1>MTG North Card Scanner</h1>
+
+                <h2>Goal</h2>
+                <p>The goal of this script is to take a CSV file output by an MTG card scanning application, specifically <strong>Manabox</strong>, feed it into this script, and get a new CSV output that can be used to update your inventory for an ecommerce platform, in this case <strong>Crystal Commerce</strong>.</p>
+
+                <h2>Using Manabox</h2>
+                <p>Making sure you select the correct printing of the card.</p>
+
+                <h2>Potential Issues</h2>
+                <ul>
+                    <li><strong>Set Name Formatting</strong>: Manabox exports the "set name" to be formatted exactly the same as Scryfall. If your "category" on Crystal Commerce is not formatted the same way it could run into an issue.</li>
+                    <li><strong>Missing Cards</strong>: Need to test to see what happens if the card doesn't exist in Manabox.</li>
+                    <li><strong>Performance</strong>: This isn't optimized at all, might have to revisit the time complexity of the script to let it handle bigger input files if that becomes an issue.</li>
+                    <li><strong>Inventory Updates</strong>: The export field needs to be "Add Qty" to ensure that Crystal Commerce adds it to the inventory and doesn't just override the existing quantity.</li>
+                </ul>
+
+                <h2>Usage</h2>
+                <ol>
+                    <li>Scan cards on Manabox</li>
+                    <li>Move the scanned cards over to a binder once complete</li>
+                    <li>Click the three dots in the top corner of the binder to export to a CSV file</li>
+                    <li>Somehow send it to your computer (maybe this works on mobile idk), probably just email it to yourself</li>
+                    <li>Open up the HTML page in your local browser by double clicking on the document or through the hosting on GitHub Pages, drag in/upload your Manabox CSV file</li>
+                    <li>The page will automatically download the exported CSV</li>
+                    <li>Head to your Crystal Commerce inventory, click on mass import, select "includes multiple categories"</li>
+                </ol>
+
+                <h2>Customization</h2>
+                <p>Customize the <code>convertToExportFormat</code> function's output with your desired import and export fields. Structured like:</p>
+                <pre><code>{
+    {export heading name}: row[{import heading name}]
+}</code></pre>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -46,6 +100,22 @@
                 processFile(files[0]);
             }
         });
+
+        function openAboutModal() {
+            document.getElementById('aboutModal').style.display = 'block';
+        }
+
+        function closeAboutModal() {
+            document.getElementById('aboutModal').style.display = 'none';
+        }
+
+        // close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('aboutModal');
+            if (event.target === modal) {
+                closeAboutModal();
+            }
+        }
 
         function handleFile() {
             const file = fileInput.files[0];
@@ -136,6 +206,8 @@
                 const output = {
                     'Product Name': row['Name'].trim(),
                     'Category': row['Set name'].trim(),
+                    'Condition': 'Near Mint',
+                    'Language': 'English',
                     'Add Qty': quantity
                 };
 
@@ -146,7 +218,7 @@
         }
 
         function generateCSV(data) {
-            const headers = ['Product Name', 'Category', 'Add Qty'];
+            const headers = ['Product Name', 'Category', 'Condition', 'Language', 'Add Qty'];
             const csvLines = [headers.join(',')];
 
             data.forEach(row => {
