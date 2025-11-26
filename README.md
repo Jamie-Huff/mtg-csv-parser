@@ -25,11 +25,4 @@ Making sure you select the correct printing of the card.
 6. The page will automatically download the exported CSV
 7. Head to your Crystal Commerce inventory, click on mass import, select "includes multiple categories"
 
-## Customization
 
-Customize the `convertToExportFormat` function's output with your desired import and export fields. Structured like:
-```javascript
-{
-    {export heading name}: row[{import heading name}]
-}
-```
