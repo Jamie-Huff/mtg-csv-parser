@@ -7,19 +7,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header Bar -->
     <div class="header-bar">
         <h1>MTG North Card Scanner</h1>
     </div>
 
-    <!-- Navigation Bar -->
     <nav class="nav-bar">
         <ul>
             <li><button class="nav-link" onclick="openAboutModal()">About</button></li>
         </ul>
     </nav>
 
-    <!-- Main Content -->
     <div class="main-content">
         <div class="container">
             <div class="upload-area" id="uploadArea">
@@ -34,7 +31,6 @@
         </div>
     </div>
 
-    <!-- About Modal -->
     <div id="aboutModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeAboutModal()">&times;</span>
@@ -109,7 +105,6 @@
             document.getElementById('aboutModal').style.display = 'none';
         }
 
-        // close modal when clicking outside of it
         window.onclick = function(event) {
             const modal = document.getElementById('aboutModal');
             if (event.target === modal) {
